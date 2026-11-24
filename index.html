@@ -1564,8 +1564,8 @@
     );
   }
 
-  // =========================================================================
-  // 5. STRICT 32-CHARACTER FORMATTING & NON-BOLD DARK THERMAL PRINT
+// =========================================================================
+  // 5. STRICT 32-CHARACTER FORMATTING & PLAIN RAWBT PRINT
   // =========================================================================
   function sanitizePrinterAscii(str) {
     return String(str)
@@ -1574,13 +1574,10 @@
       .replace(/[^\x20-\x7E\n]/g, '');
   }
 
-  function addDarkPrintCommands(cleanAsciiText) {
-    const ESC_INIT = "\x1B\x40";
-    const ESC_HEAT = "\x1B\x37\x0B\xFF\x02";
-    const GS_DENSITY = "\x1D\x28\x4B\x02\x00\x31\x04";
-    const ESC_BOLD_OFF = "\x1B\x45\x00";
-    const ESC_DBL_STRIKE_OFF = "\x1B\x47\x00";
-    return ESC_INIT + ESC_HEAT + GS_DENSITY + ESC_BOLD_OFF + ESC_DBL_STRIKE_OFF + cleanAsciiText;
+  function sendPlainTextToRawBT(receiptText) {
+    const cleanAscii = sanitizePrinterAscii(receiptText);
+    const base64Data = btoa(unescape(encodeURIComponent(cleanAscii)));
+    window.location.href = `intent:base64,${base64Data}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
   }
 
   function buildReceiptFromData(billItems, custName, prevVal, paidVal, dateObj) {
@@ -1661,17 +1658,13 @@
     document.getElementById('liveBillTotalText').innerText = "₹" + receipt.total;
   }
 
-  function printViaRawBT() {
+function printViaRawBT() {
     if (currentBill.length === 0) {
       return showToast("Add at least 1 item before printing!", "warn");
     }
     triggerHaptic(15);
     saveCurrentBillToHistory();
-
-    const cleanAscii = sanitizePrinterAscii(build32CharReceipt().text);
-    const darkPayload = addDarkPrintCommands(cleanAscii);
-    const base64Data = btoa(unescape(encodeURIComponent(darkPayload)));
-    window.location.href = `intent:base64,${base64Data}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+    sendPlainTextToRawBT(build32CharReceipt().text);
   }
 
   // =========================================================================
@@ -1857,11 +1850,8 @@
       closeViewHistoryModal();
     };
 
-    document.getElementById('viewModalPrintBtn').onclick = () => {
-      const cleanAscii = sanitizePrinterAscii(receiptObj.text);
-      const darkPayload = addDarkPrintCommands(cleanAscii);
-      const base64Data = btoa(unescape(encodeURIComponent(darkPayload)));
-      window.location.href = `intent:base64,${base64Data}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+document.getElementById('viewModalPrintBtn').onclick = () => {
+      sendPlainTextToRawBT(receiptObj.text);
     };
 
     document.getElementById('viewHistoryModal').classList.add('open');
